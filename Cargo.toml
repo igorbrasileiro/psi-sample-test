@@ -2,6 +2,14 @@
 name = "psi-test"
 version = "0.1.0"
 edition = "2021"
+authors = ["Igor Brasileiro <github.com/igorbrasileiro>"]
+description = "PSI Test is a tool for run multiple time Page Speed Insight test."
+homepage = "https://github.com/igorbrasileiro/psi-sample-test"
+repository = "https://github.com/igorbrasileiro/psi-sample-test"
+readme = "README.md"
+categories = ["command-line-utilities", "development-tools"]
+keywords = ["PageSpeedInsight", "PSI", "lighthouse", "lhci", "psi"]
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
