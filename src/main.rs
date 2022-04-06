@@ -1,6 +1,4 @@
-use std::env;
-
-use clap::{crate_version, App, Arg};
+use clap::{Arg, Command};
 use reqwest::Error;
 use serde::Deserialize;
 
@@ -298,29 +296,31 @@ fn print_result(
 }
 
 async fn psi_test() -> Result<(), Error> {
-    let matches = App::new("psi-tests")
+    let matches = Command::new("psi-tests")
         .about("PSI Tests is a tool to run multiple page speed insight tests.")
-        .version(crate_version!())
         .long_about(
         "PSI Tests is a tool to run multiple page speed insight tests and get the mean and standard deviation from some metrics.
         Example: you wanna run 10 tests from a specific site
         psi-test --token=<TOKEN_VALUE> --number-of-runs=10 https://www.google.com",
         )
+        // Change if crate_version start work again
+        .version(env!("CARGO_PKG_VERSION"))
         .arg(
-            Arg::with_name("token")
+            Arg::new("token")
             .value_name("TOKEN_VALUE")
             .required(true)
-            .short("T")
+            .short('T')
             .long("token")
-            .help("Google cloud token to access Page Speed Insights API. Todo add link here"),
+            .help("Google cloud token to access Page Speed Insights API. For more informartion: https://developers.google.com/speed/docs/insights/v5/get-started#APIKey"),
         )
         .arg(
-            Arg::with_name("number-of-runs")
+            Arg::new("number-of-runs")
+            .short('N')
             .long("number-of-runs")
             .help("Number of PSI tests for each page."),
         )
         .arg(
-            Arg::with_name("first-page")
+            Arg::new("first-page")
             .required(true)
             .help("Page URL.")
             .index(1)
@@ -339,17 +339,13 @@ async fn psi_test() -> Result<(), Error> {
 
     let first_page_result =
         map_audits(&get_page_audits(first_page_url, token, number_of_runs).await?);
-    // let second_page_result = map_audits(&get_page_audits(second_page_url).await?);
 
     let first_page_mean = calculate_mean(&first_page_result, number_of_runs);
-    // let second_page_mean = calculate_mean(&second_page_result);
 
     let first_page_deviation =
         calculate_deviation(&first_page_result, &first_page_mean, number_of_runs);
-    // let second_page_deviation = calculate_deviation(&second_page_result, &second_page_mean);
 
     print_result(first_page_url, &first_page_mean, &first_page_deviation);
-    // print_result(second_page_url, &second_page_mean, &second_page_deviation);
 
     return Ok(());
 }
