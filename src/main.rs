@@ -315,6 +315,7 @@ async fn psi_test() -> Result<(), Error> {
         )
         .arg(
             Arg::new("number-of-runs")
+            .value_name("NUMBER")
             .short('N')
             .long("number-of-runs")
             .help("Number of PSI tests for each page."),
@@ -328,7 +329,7 @@ async fn psi_test() -> Result<(), Error> {
 
     // Required value
     let token = matches.value_of("token").expect("Token is required!");
-    let number_of_runs = match matches.value_of("number_of_runs") {
+    let number_of_runs = match matches.value_of("number-of-runs") {
         Some(value) => value.parse::<i8>().unwrap(),
         None => SAMPLE,
     };
