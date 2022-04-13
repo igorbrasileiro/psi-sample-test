@@ -1,8 +1,12 @@
+use std::usize;
+
 use clap::{Arg, Command};
+use futures::StreamExt;
 use reqwest::Error;
 use serde::Deserialize;
 
 const SAMPLE: i8 = 20;
+const BUFFER_SIZE: usize = 15;
 
 #[derive(Deserialize, Debug)]
 struct Audit {
@@ -94,8 +98,15 @@ async fn get_page_audits(
     }).collect::<Vec<String>>();
     let client = reqwest::Client::new();
 
-    let list_responses =
-        futures::future::join_all(list_urls.iter().map(|url| client.get(url).send())).await;
+    let list_responses = futures::stream::iter(
+        list_urls
+            .iter()
+            .map(|url| client.get(url).send())
+            .into_iter(),
+    )
+    .buffer_unordered(BUFFER_SIZE)
+    .collect::<Vec<_>>()
+    .await;
 
     let mut list_audits = Vec::new();
     for res in list_responses {
