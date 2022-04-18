@@ -1,4 +1,4 @@
-use std::usize;
+use std::{f64::consts::SQRT_2, usize};
 
 use clap::{Arg, Command};
 use futures::StreamExt;
@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 const SAMPLE: i8 = 20;
 const BUFFER_SIZE: usize = 15;
+const Z_VALUE: f64 = 1.96_f64; // z-value for 95% confidence level.
 
 #[derive(Deserialize, Debug)]
 struct Audit {
@@ -245,6 +246,14 @@ fn calculate_deviation(
         ),
         score: std_deviation(&page_results.score, page_mean.score, number_of_runs),
     };
+}
+
+// Reference: https://www.dummies.com/article/academics-the-arts/math/statistics/how-to-calculate-a-confidence-interval-for-a-population-mean-when-you-know-its-standard-deviation-169722/
+fn confidence_interval(mean: f64, std_deviation: f64, number_of_runs: i8) -> (f64, f64) {
+    // margin error =  z value * std_deviation / sqrt (number_of_runs)
+    let margin_error = Z_VALUE * (std_deviation / (number_of_runs as f64).sqrt());
+
+    return (mean - margin_error, mean + margin_error);
 }
 
 fn print_table_result(page_mean: &PSIStatisticResult, page_std_deviation: &PSIStatisticResult) {
