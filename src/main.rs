@@ -1,4 +1,4 @@
-use std::{f64::consts::SQRT_2, usize};
+use std::usize;
 
 use clap::{Arg, Command};
 use futures::StreamExt;
@@ -77,16 +77,16 @@ struct PSIResultValues {
 }
 
 #[derive(Debug)]
-struct PSIStatisticResult {
-    cumulative_layout_shift: f64,
-    first_contentful_paint: f64,
-    first_contentful_paint_3g: f64,
-    js_execution_time: f64,
-    largest_contentful_paint: f64,
-    speed_index: f64,
-    time_to_interactive: f64,
-    total_blocking_time: f64,
-    score: f64,
+struct PSIStatisticResult<T> {
+    cumulative_layout_shift: T,
+    first_contentful_paint: T,
+    first_contentful_paint_3g: T,
+    js_execution_time: T,
+    largest_contentful_paint: T,
+    speed_index: T,
+    time_to_interactive: T,
+    total_blocking_time: T,
+    score: T,
 }
 
 async fn get_page_audits(
@@ -172,7 +172,7 @@ fn mean(results: &Vec<f64>, number_of_runs: i8) -> f64 {
     return results.iter().sum::<f64>() / number_of_runs as f64;
 }
 
-fn calculate_mean(page_results: &PSIResultValues, number_of_runs: i8) -> PSIStatisticResult {
+fn calculate_mean(page_results: &PSIResultValues, number_of_runs: i8) -> PSIStatisticResult<f64> {
     return PSIStatisticResult {
         cumulative_layout_shift: mean(&page_results.cumulative_layout_shift, number_of_runs),
         first_contentful_paint: mean(&page_results.first_contentful_paint, number_of_runs),
@@ -200,9 +200,9 @@ fn std_deviation(data: &Vec<f64>, mean: f64, number_of_runs: i8) -> f64 {
 
 fn calculate_deviation(
     page_results: &PSIResultValues,
-    page_mean: &PSIStatisticResult,
+    page_mean: &PSIStatisticResult<f64>,
     number_of_runs: i8,
-) -> PSIStatisticResult {
+) -> PSIStatisticResult<f64> {
     return PSIStatisticResult {
         cumulative_layout_shift: std_deviation(
             &page_results.cumulative_layout_shift,
@@ -256,63 +256,142 @@ fn confidence_interval(mean: f64, std_deviation: f64, number_of_runs: i8) -> (f6
     return (mean - margin_error, mean + margin_error);
 }
 
-fn print_table_result(page_mean: &PSIStatisticResult, page_std_deviation: &PSIStatisticResult) {
-    println!("| Metric | Mean | Standard deviation |");
-    println!("|--------|--------|--------|");
+fn calculate_confidence_interval(
+    mean: &PSIStatisticResult<f64>,
+    std_deviation: &PSIStatisticResult<f64>,
+    number_of_runs: i8,
+) -> PSIStatisticResult<(f64, f64)> {
+    return PSIStatisticResult::<(f64, f64)> {
+        cumulative_layout_shift: confidence_interval(
+            mean.cumulative_layout_shift,
+            std_deviation.cumulative_layout_shift,
+            number_of_runs,
+        ),
+        first_contentful_paint: confidence_interval(
+            mean.first_contentful_paint,
+            std_deviation.first_contentful_paint,
+            number_of_runs,
+        ),
+        first_contentful_paint_3g: confidence_interval(
+            mean.first_contentful_paint_3g,
+            std_deviation.first_contentful_paint_3g,
+            number_of_runs,
+        ),
+        js_execution_time: confidence_interval(
+            mean.js_execution_time,
+            std_deviation.js_execution_time,
+            number_of_runs,
+        ),
+        largest_contentful_paint: confidence_interval(
+            mean.largest_contentful_paint,
+            std_deviation.largest_contentful_paint,
+            number_of_runs,
+        ),
+        speed_index: confidence_interval(
+            mean.speed_index,
+            std_deviation.speed_index,
+            number_of_runs,
+        ),
+        time_to_interactive: confidence_interval(
+            mean.time_to_interactive,
+            std_deviation.time_to_interactive,
+            number_of_runs,
+        ),
+        total_blocking_time: confidence_interval(
+            mean.total_blocking_time,
+            std_deviation.total_blocking_time,
+            number_of_runs,
+        ),
+        score: confidence_interval(mean.score, std_deviation.score, number_of_runs),
+    };
+}
+
+fn print_table_result(
+    page_mean: &PSIStatisticResult<f64>,
+    page_std_deviation: &PSIStatisticResult<f64>,
+    page_confidence_interval: &PSIStatisticResult<(f64, f64)>,
+) {
+    println!("| Metric | Mean | Standard deviation | Confidence Interval (95%) |");
+    println!("|--------|--------|--------|--------|");
+
     println!(
-        "| Cumulative Layout shift (CLS) | {mean:.2} | {std_deviation:.2} |",
+        "| Cumulative Layout shift (CLS) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.cumulative_layout_shift,
-        std_deviation = page_std_deviation.cumulative_layout_shift
+        std_deviation = page_std_deviation.cumulative_layout_shift,
+        ci_min = page_confidence_interval.cumulative_layout_shift.0,
+        ci_max = page_confidence_interval.cumulative_layout_shift.1,
     );
     println!(
-        "| First Contentful Paint (FCP) | {mean:.2} | {std_deviation:.2} |",
+        "| First Contentful Paint (FCP) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.first_contentful_paint,
         std_deviation = page_std_deviation.first_contentful_paint,
+        ci_min = page_confidence_interval.first_contentful_paint.0,
+        ci_max = page_confidence_interval.first_contentful_paint.1,
     );
     println!(
-        "| First Contentful Paint 3g (FCP) | {mean:.2} | {std_deviation:.2} |",
+        "| First Contentful Paint 3g (FCP) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.first_contentful_paint_3g,
         std_deviation = page_std_deviation.first_contentful_paint_3g,
+
+        ci_min = page_confidence_interval.first_contentful_paint_3g.0,
+        ci_max = page_confidence_interval.first_contentful_paint_3g.1,
     );
     println!(
-        "| Largest Contentful Paint (LCP) | {mean:.2} | {std_deviation:.2} |",
+        "| Largest Contentful Paint (LCP) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.largest_contentful_paint,
         std_deviation = page_std_deviation.largest_contentful_paint,
+
+        ci_min = page_confidence_interval.largest_contentful_paint.0,
+        ci_max = page_confidence_interval.largest_contentful_paint.1,
     );
     println!(
-        "| Time to Interactive (TTI) | {mean:.2} | {std_deviation:.2} |",
+        "| Time to Interactive (TTI) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.time_to_interactive,
         std_deviation = page_std_deviation.time_to_interactive,
+
+        ci_min = page_confidence_interval.largest_contentful_paint.0,
+        ci_max = page_confidence_interval.largest_contentful_paint.1,
     );
     println!(
-        "| Total Blocking Time (TBT) | {mean:.2} | {std_deviation:.2} |",
+        "| Total Blocking Time (TBT) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.total_blocking_time,
         std_deviation = page_std_deviation.total_blocking_time,
+
+        ci_min = page_confidence_interval.largest_contentful_paint.0,
+        ci_max = page_confidence_interval.largest_contentful_paint.1,
     );
     println!(
-        "| Performance score | {mean:.3} | {std_deviation:.6} |",
+        "| Performance score | {mean:.3} | {std_deviation:.6} | [{ci_min:.6}, {ci_max:.6}] |",
         mean = page_mean.score,
         std_deviation = page_std_deviation.score,
+        ci_min = page_confidence_interval.score.0,
+        ci_max = page_confidence_interval.score.1,
     );
     println!(
-        "| JavaScript Execution Time | {mean:.2} | {std_deviation:.2} |",
+        "| JavaScript Execution Time | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.js_execution_time,
         std_deviation = page_std_deviation.js_execution_time,
+
+        ci_min = page_confidence_interval.js_execution_time.0,
+        ci_max = page_confidence_interval.js_execution_time.1,
     );
     println!(
-        "| Speed Index | {mean:.2} | {std_deviation:.2} |",
+        "| Speed Index | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.speed_index,
         std_deviation = page_std_deviation.speed_index,
+        ci_min = page_confidence_interval.js_execution_time.0,
+        ci_max = page_confidence_interval.js_execution_time.1,
     );
 }
 
 fn print_result(
     page_url: &str,
-    page_mean: &PSIStatisticResult,
-    page_std_deviation: &PSIStatisticResult,
+    page_mean: &PSIStatisticResult<f64>,
+    page_std_deviation: &PSIStatisticResult<f64>,
+    page_confidence_interval: &PSIStatisticResult<(f64, f64)>,
 ) {
     println!("Page result - {url}", url = page_url);
-    print_table_result(page_mean, page_std_deviation);
+    print_table_result(page_mean, page_std_deviation, page_confidence_interval);
 }
 
 async fn psi_test() -> Result<(), Error> {
@@ -354,19 +433,25 @@ async fn psi_test() -> Result<(), Error> {
         None => SAMPLE,
     };
     // Required value
-    let first_page_url = matches
+    let page_url = matches
         .value_of("first-page")
         .expect("Page URL is required");
 
-    let first_page_result =
-        map_audits(&get_page_audits(first_page_url, token, number_of_runs).await?);
+    let page_result = map_audits(&get_page_audits(page_url, token, number_of_runs).await?);
 
-    let first_page_mean = calculate_mean(&first_page_result, number_of_runs);
+    let page_mean = calculate_mean(&page_result, number_of_runs);
 
-    let first_page_deviation =
-        calculate_deviation(&first_page_result, &first_page_mean, number_of_runs);
+    let page_deviation = calculate_deviation(&page_result, &page_mean, number_of_runs);
 
-    print_result(first_page_url, &first_page_mean, &first_page_deviation);
+    let page_confidence_interval =
+        calculate_confidence_interval(&page_mean, &page_deviation, number_of_runs);
+
+    print_result(
+        page_url,
+        &page_mean,
+        &page_deviation,
+        &page_confidence_interval,
+    );
 
     return Ok(());
 }
