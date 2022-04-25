@@ -23,9 +23,6 @@ struct Audits {
     #[serde(rename = "first-contentful-paint")]
     first_contentful_paint: Audit,
 
-    #[serde(rename = "first-contentful-paint-3g")]
-    first_contentful_paint_3g: Audit,
-
     #[serde(rename = "bootup-time")]
     js_execution_time: Audit,
 
@@ -67,7 +64,6 @@ struct PSIResult {
 struct PSIResultValues {
     cumulative_layout_shift: Vec<f64>,
     first_contentful_paint: Vec<f64>,
-    first_contentful_paint_3g: Vec<f64>,
     js_execution_time: Vec<f64>,
     largest_contentful_paint: Vec<f64>,
     speed_index: Vec<f64>,
@@ -80,7 +76,6 @@ struct PSIResultValues {
 struct PSIStatisticResult<T> {
     cumulative_layout_shift: T,
     first_contentful_paint: T,
-    first_contentful_paint_3g: T,
     js_execution_time: T,
     largest_contentful_paint: T,
     speed_index: T,
@@ -117,9 +112,17 @@ async fn get_page_audits(
                     audits: json.lighthouse_result.audits,
                     categories: json.lighthouse_result.categories,
                 },
-                Err(_) => panic!("Problem parsing response from  {site}", site = url),
+                Err(error) => panic!(
+                    "Problem parsing json response {site}. \n {error}",
+                    site = url,
+                    error = error
+                ),
             },
-            Err(_) => panic!("Problem parsing response from  {site}", site = url),
+            Err(error) => panic!(
+                "Problem mounting audits {site}. \n {error}",
+                site = url,
+                error = error
+            ),
         };
         list_audits.push(audit);
     }
@@ -136,10 +139,6 @@ fn map_audits(lh_results: &Vec<LHResult>) -> PSIResultValues {
         first_contentful_paint: lh_results
             .iter()
             .map(|result| result.audits.first_contentful_paint.numeric_value)
-            .collect(),
-        first_contentful_paint_3g: lh_results
-            .iter()
-            .map(|result| result.audits.first_contentful_paint_3g.numeric_value)
             .collect(),
         js_execution_time: lh_results
             .iter()
@@ -176,7 +175,6 @@ fn calculate_mean(page_results: &PSIResultValues, number_of_runs: i8) -> PSIStat
     return PSIStatisticResult {
         cumulative_layout_shift: mean(&page_results.cumulative_layout_shift, number_of_runs),
         first_contentful_paint: mean(&page_results.first_contentful_paint, number_of_runs),
-        first_contentful_paint_3g: mean(&page_results.first_contentful_paint_3g, number_of_runs),
         js_execution_time: mean(&page_results.js_execution_time, number_of_runs),
         largest_contentful_paint: mean(&page_results.largest_contentful_paint, number_of_runs),
         speed_index: mean(&page_results.speed_index, number_of_runs),
@@ -212,11 +210,6 @@ fn calculate_deviation(
         first_contentful_paint: std_deviation(
             &page_results.first_contentful_paint,
             page_mean.first_contentful_paint,
-            number_of_runs,
-        ),
-        first_contentful_paint_3g: std_deviation(
-            &page_results.first_contentful_paint_3g,
-            page_mean.first_contentful_paint_3g,
             number_of_runs,
         ),
         js_execution_time: std_deviation(
@@ -272,11 +265,6 @@ fn calculate_confidence_interval(
             std_deviation.first_contentful_paint,
             number_of_runs,
         ),
-        first_contentful_paint_3g: confidence_interval(
-            mean.first_contentful_paint_3g,
-            std_deviation.first_contentful_paint_3g,
-            number_of_runs,
-        ),
         js_execution_time: confidence_interval(
             mean.js_execution_time,
             std_deviation.js_execution_time,
@@ -327,14 +315,6 @@ fn print_table_result(
         std_deviation = page_std_deviation.first_contentful_paint,
         ci_min = page_confidence_interval.first_contentful_paint.0,
         ci_max = page_confidence_interval.first_contentful_paint.1,
-    );
-    println!(
-        "| First Contentful Paint 3g (FCP) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
-        mean = page_mean.first_contentful_paint_3g,
-        std_deviation = page_std_deviation.first_contentful_paint_3g,
-
-        ci_min = page_confidence_interval.first_contentful_paint_3g.0,
-        ci_max = page_confidence_interval.first_contentful_paint_3g.1,
     );
     println!(
         "| Largest Contentful Paint (LCP) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
