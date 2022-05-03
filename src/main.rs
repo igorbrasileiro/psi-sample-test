@@ -329,16 +329,16 @@ fn print_table_result(
         mean = page_mean.time_to_interactive,
         std_deviation = page_std_deviation.time_to_interactive,
 
-        ci_min = page_confidence_interval.largest_contentful_paint.0,
-        ci_max = page_confidence_interval.largest_contentful_paint.1,
+        ci_min = page_confidence_interval.time_to_interactive.0,
+        ci_max = page_confidence_interval.time_to_interactive.1,
     );
     println!(
         "| Total Blocking Time (TBT) | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.total_blocking_time,
         std_deviation = page_std_deviation.total_blocking_time,
 
-        ci_min = page_confidence_interval.largest_contentful_paint.0,
-        ci_max = page_confidence_interval.largest_contentful_paint.1,
+        ci_min = page_confidence_interval.total_blocking_time.0,
+        ci_max = page_confidence_interval.total_blocking_time.1,
     );
     println!(
         "| Performance score | {mean:.3} | {std_deviation:.6} | [{ci_min:.6}, {ci_max:.6}] |",
@@ -359,8 +359,8 @@ fn print_table_result(
         "| Speed Index | {mean:.2} | {std_deviation:.2} | [{ci_min:.2}, {ci_max:.2}] |",
         mean = page_mean.speed_index,
         std_deviation = page_std_deviation.speed_index,
-        ci_min = page_confidence_interval.js_execution_time.0,
-        ci_max = page_confidence_interval.js_execution_time.1,
+        ci_min = page_confidence_interval.speed_index.0,
+        ci_max = page_confidence_interval.speed_index.1,
     );
 }
 
