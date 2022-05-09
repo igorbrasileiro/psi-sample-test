@@ -1,4 +1,6 @@
-use std::usize;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Lines};
+use std::{path::Path, usize};
 
 use clap::{Arg, Command};
 use futures::StreamExt;
@@ -8,6 +10,21 @@ use serde::Deserialize;
 const SAMPLE: i8 = 20;
 const BUFFER_SIZE: usize = 15;
 const Z_VALUE: f64 = 1.96_f64; // z-value for 95% confidence level.
+
+#[derive(Debug, Deserialize)]
+enum Strategy {
+    MOBILE,
+    DESKTOP,
+}
+
+impl std::fmt::Display for Strategy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Strategy::MOBILE => write!(f, "mobile"),
+            Strategy::DESKTOP => write!(f, "desktop"),
+        }
+    }
+}
 
 #[derive(Deserialize, Debug)]
 struct Audit {
@@ -84,13 +101,25 @@ struct PSIStatisticResult<T> {
     score: T,
 }
 
+// Utilities
+fn read_lines<P>(filename: P) -> Lines<BufReader<File>>
+where
+    P: AsRef<Path>,
+{
+    let file = File::open(filename).unwrap();
+    let file_lines = BufReader::new(file).lines();
+
+    return file_lines;
+}
+
 async fn get_page_audits(
     url: &str,
     token: &str,
     number_of_runs: i8,
+    strategy: Strategy,
 ) -> Result<Vec<LHResult>, reqwest::Error> {
     let list_urls = (0..number_of_runs).map(|_| {
-        format!("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?key={api_key}&url={url}&strategy=mobile&category=performance", url = url, api_key = token)
+        format!("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?key={api_key}&url={url}&strategy={strategy}&category=performance", url = url, api_key = token, strategy = strategy)
     }).collect::<Vec<String>>();
     let client = reqwest::Client::new();
 
@@ -294,6 +323,22 @@ fn calculate_confidence_interval(
     };
 }
 
+fn calculate_median(list: &Vec<f64>, number_of_runs: i8) -> f64 {
+    let mut sorted_list = list.clone();
+    sorted_list.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let index: usize = number_of_runs as usize / 2;
+    if number_of_runs % 2 == 1 {
+        // odd
+        return sorted_list.get(index as usize).unwrap().clone();
+    } else {
+        // even
+        let first_median = sorted_list.get(index).unwrap();
+        let second_median = sorted_list.get(index + 1).unwrap();
+
+        return (first_median + second_median) / 2_f64;
+    }
+}
+
 fn print_table_result(
     page_mean: &PSIStatisticResult<f64>,
     page_std_deviation: &PSIStatisticResult<f64>,
@@ -374,6 +419,40 @@ fn print_result(
     print_table_result(page_mean, page_std_deviation, page_confidence_interval);
 }
 
+async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) {
+    let urls = read_lines(filename);
+
+    println!("Store,Desktop - Media,Desktop - Mediana,Mobile - Media,Mobile - Mediana");
+    for _url in urls {
+        if let Ok(url) = _url {
+            let mobile_page_result = map_audits(
+                &get_page_audits(&url as &str, token, number_of_runs, Strategy::MOBILE)
+                    .await
+                    .unwrap(),
+            );
+            let mobile_page_mean = calculate_mean(&mobile_page_result, number_of_runs);
+            let mobile_page_median = calculate_median(&mobile_page_result.score, number_of_runs);
+
+            let desktop_page_result = map_audits(
+                &get_page_audits(&url as &str, token, number_of_runs, Strategy::DESKTOP)
+                    .await
+                    .unwrap(),
+            );
+            let desktop_page_mean = calculate_mean(&desktop_page_result, number_of_runs);
+            let desktop_page_median = calculate_median(&desktop_page_result.score, number_of_runs);
+
+            println!(
+                "{url},{d_mean:.3},{d_median:.3},{m_mean:.3},{m_median:.3}",
+                url = url,
+                d_mean = desktop_page_mean.score,
+                d_median = desktop_page_median,
+                m_mean = mobile_page_mean.score,
+                m_median = mobile_page_median
+            );
+        }
+    }
+}
+
 async fn psi_test() -> Result<(), Error> {
     let matches = Command::new("psi-tests")
         .about("PSI Tests is a tool to run multiple page speed insight tests.")
@@ -401,10 +480,17 @@ async fn psi_test() -> Result<(), Error> {
         )
         .arg(
             Arg::new("first-page")
-            .required(true)
             .help("Page URL.")
             .index(1)
-        ).get_matches();
+        )
+        .arg(
+            Arg::new("batch")
+            .value_name("INPUT")
+            .short('B')
+            .long("batch-file")
+            .help("Batch file allow pass a TXT input file with URLs, line by line, to be tested.")
+        )
+        .get_matches();
 
     // Required value
     let token = matches.value_of("token").expect("Token is required!");
@@ -412,12 +498,20 @@ async fn psi_test() -> Result<(), Error> {
         Some(value) => value.parse::<i8>().unwrap(),
         None => SAMPLE,
     };
+
+    if let Some(batch) = matches.value_of("batch") {
+        run_batch_tests(batch, token, number_of_runs).await;
+
+        return Ok(());
+    }
+
     // Required value
     let page_url = matches
         .value_of("first-page")
         .expect("Page URL is required");
 
-    let page_result = map_audits(&get_page_audits(page_url, token, number_of_runs).await?);
+    let page_result =
+        map_audits(&get_page_audits(page_url, token, number_of_runs, Strategy::MOBILE).await?);
 
     let page_mean = calculate_mean(&page_result, number_of_runs);
 
