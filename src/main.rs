@@ -11,6 +11,23 @@ use crate::utils::read_lines;
 const SAMPLE: i8 = 20;
 const BUFFER_SIZE: usize = 15;
 const Z_VALUE: f64 = 1.96_f64; // z-value for 95% confidence level.
+const EMPTY_AUDIT: Audit = Audit {
+    numeric_value: 0_f64,
+};
+const EMPTY_LH_RESULT: LHResult = LHResult {
+    audits: Audits {
+        cumulative_layout_shift: EMPTY_AUDIT,
+        first_contentful_paint: EMPTY_AUDIT,
+        js_execution_time: EMPTY_AUDIT,
+        largest_contentful_paint: EMPTY_AUDIT,
+        speed_index: EMPTY_AUDIT,
+        time_to_interactive: EMPTY_AUDIT,
+        total_blocking_time: EMPTY_AUDIT,
+    },
+    categories: Categories {
+        performance: Category { score: 0_f64 },
+    },
+};
 
 #[derive(Debug, Deserialize)]
 enum Strategy {
@@ -131,11 +148,7 @@ async fn get_page_audits(
                     audits: json.lighthouse_result.audits,
                     categories: json.lighthouse_result.categories,
                 },
-                Err(error) => panic!(
-                    "Problem parsing json response {site}. \n {error}",
-                    site = url,
-                    error = error
-                ),
+                Err(_) => EMPTY_LH_RESULT,
             },
             Err(error) => panic!(
                 "Problem mounting audits {site}. \n {error}",
