@@ -326,13 +326,17 @@ fn calculate_confidence_interval(
     };
 }
 
-fn calculate_median(list: &Vec<f64>, number_of_runs: i8) -> f64 {
+fn median(list: &Vec<f64>) -> f64 {
+    let number_of_runs: usize = list.len();
+    let index = number_of_runs / 2;
+
+    // Sort list to get the middle value
     let mut sorted_list = list.clone();
     sorted_list.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let index: usize = number_of_runs as usize / 2;
+
     if number_of_runs % 2 == 1 {
         // odd
-        return sorted_list.get(index as usize).unwrap().clone();
+        return sorted_list.get(index).unwrap().clone();
     } else {
         // even
         let first_median = sorted_list.get(index).unwrap();
@@ -422,36 +426,80 @@ fn print_result(
     print_table_result(page_mean, page_std_deviation, page_confidence_interval);
 }
 
+async fn batch_tests(url: &str, token: &str, number_of_runs: i8) -> bool {
+    let mobile_page_result = map_audits(
+        &get_page_audits(&url as &str, token, number_of_runs, Strategy::MOBILE)
+            .await
+            .unwrap(),
+    );
+    // Handle if some test failed
+    for mobile_result in &mobile_page_result.score {
+        if *mobile_result == 0_f64 {
+            return false;
+        }
+    }
+
+    let desktop_page_result = map_audits(
+        &get_page_audits(&url as &str, token, number_of_runs, Strategy::DESKTOP)
+            .await
+            .unwrap(),
+    );
+    // Handle if some test failed
+    for desktop_result in &desktop_page_result.score {
+        if *desktop_result == 0_f64 {
+            return false;
+        }
+    }
+
+    let mobile_page_mean = calculate_mean(&mobile_page_result, number_of_runs);
+    let mobile_page_median = median(&mobile_page_result.score);
+
+    let desktop_page_mean = calculate_mean(&desktop_page_result, number_of_runs);
+    let desktop_page_median = median(&desktop_page_result.score);
+
+    println!(
+        "{url},{d_mean:.3},{d_median:.3},{m_mean:.3},{m_median:.3}",
+        url = url,
+        d_mean = desktop_page_mean.score,
+        d_median = desktop_page_median,
+        m_mean = mobile_page_mean.score,
+        m_median = mobile_page_median
+    );
+
+    return true;
+}
+
 async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) {
     let urls = read_lines(filename);
+    let mut failed_urls: Vec<String> = Vec::new();
 
     println!("Store,Desktop - Media,Desktop - Mediana,Mobile - Media,Mobile - Mediana");
     for _url in urls {
         if let Ok(url) = _url {
-            let mobile_page_result = map_audits(
-                &get_page_audits(&url as &str, token, number_of_runs, Strategy::MOBILE)
-                    .await
-                    .unwrap(),
-            );
-            let mobile_page_mean = calculate_mean(&mobile_page_result, number_of_runs);
-            let mobile_page_median = calculate_median(&mobile_page_result.score, number_of_runs);
+            let url = url;
+            let test_finished = batch_tests(&url, token, number_of_runs).await;
 
-            let desktop_page_result = map_audits(
-                &get_page_audits(&url as &str, token, number_of_runs, Strategy::DESKTOP)
-                    .await
-                    .unwrap(),
-            );
-            let desktop_page_mean = calculate_mean(&desktop_page_result, number_of_runs);
-            let desktop_page_median = calculate_median(&desktop_page_result.score, number_of_runs);
+            if !test_finished {
+                failed_urls.push(url.clone());
+            }
+        }
+    }
 
-            println!(
-                "{url},{d_mean:.3},{d_median:.3},{m_mean:.3},{m_median:.3}",
-                url = url,
-                d_mean = desktop_page_mean.score,
-                d_median = desktop_page_median,
-                m_mean = mobile_page_mean.score,
-                m_median = mobile_page_median
-            );
+    // Handle failed urls until failed_urls list is empty
+    while failed_urls.len() > 0 {
+        let urls_size = failed_urls.len();
+
+        for url_idx in 0..urls_size {
+            // from last to first
+            let idx = (urls_size - 1) - url_idx;
+            let url = failed_urls[idx].clone();
+            let test_finished = batch_tests(&url, token, number_of_runs).await;
+
+            if !test_finished {
+                continue;
+            }
+
+            failed_urls.remove(idx);
         }
     }
 }
@@ -513,6 +561,7 @@ async fn psi_test() -> Result<(), Error> {
         .value_of("first-page")
         .expect("Page URL is required");
 
+    // TODO: Filter get_page_audits results that's empty when failed.
     let page_result =
         map_audits(&get_page_audits(page_url, token, number_of_runs, Strategy::MOBILE).await?);
 
