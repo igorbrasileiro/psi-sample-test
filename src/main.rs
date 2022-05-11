@@ -463,7 +463,7 @@ async fn batch_tests(url: &str, token: &str, number_of_runs: i8) -> bool {
         d_mean = desktop_page_mean.score,
         d_median = desktop_page_median,
         m_mean = mobile_page_mean.score,
-        m_median = mobile_page_median
+        m_median = mobile_page_median,
     );
 
     return true;
@@ -486,7 +486,7 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) {
     }
 
     // Handle failed urls until failed_urls list is empty
-    while failed_urls.len() > 0 {
+    for _ in 0..2 {
         let urls_size = failed_urls.len();
 
         for url_idx in 0..urls_size {
@@ -501,6 +501,17 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) {
 
             failed_urls.remove(idx);
         }
+    }
+
+    for url in failed_urls {
+        println!(
+            "{url},{d_mean:.3},{d_median:.3},{m_mean:.3},{m_median:.3}",
+            url = url,
+            d_mean = 0_f64,
+            d_median = 0_f64,
+            m_mean = 0_f64,
+            m_median = 0_f64,
+        );
     }
 }
 
