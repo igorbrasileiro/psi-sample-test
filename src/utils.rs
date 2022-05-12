@@ -11,3 +11,20 @@ where
 
     return file_lines;
 }
+
+pub fn check_file_availability(filename: &str) -> &Path {
+    let filename_path = Path::new(filename);
+
+    if !filename_path.exists() {
+        return filename_path;
+    }
+
+    // TODO: create a file name with "filename (x).ext"
+    // let mut new_filename = &mut filename.clone().replace(".", concat!("()."));
+
+    // while !Path::new(&new_filename.clone()).exists() {
+    // new_filename = &mut new_filename.replace(".", concat!("()."));
+    // }
+
+    return filename_path;
+}
