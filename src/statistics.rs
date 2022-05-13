@@ -152,15 +152,15 @@ pub fn median(list: &Vec<f64>) -> f64 {
     }
 }
 
-pub fn calculate_median(page_results: &PSIResultValues) -> PSIStatisticResult<f64> {
-    return PSIStatisticResult {
-        cumulative_layout_shift: median(&page_results.cumulative_layout_shift),
-        first_contentful_paint: median(&page_results.first_contentful_paint),
-        js_execution_time: median(&page_results.js_execution_time),
-        largest_contentful_paint: median(&page_results.largest_contentful_paint),
-        speed_index: median(&page_results.speed_index),
-        time_to_interactive: median(&page_results.time_to_interactive),
-        total_blocking_time: median(&page_results.total_blocking_time),
-        score: median(&page_results.score),
-    };
-}
+// pub fn calculate_median(page_results: &PSIResultValues) -> PSIStatisticResult<f64> {
+// return PSIStatisticResult {
+// cumulative_layout_shift: median(&page_results.cumulative_layout_shift),
+// first_contentful_paint: median(&page_results.first_contentful_paint),
+// js_execution_time: median(&page_results.js_execution_time),
+// largest_contentful_paint: median(&page_results.largest_contentful_paint),
+// speed_index: median(&page_results.speed_index),
+// time_to_interactive: median(&page_results.time_to_interactive),
+// total_blocking_time: median(&page_results.total_blocking_time),
+// score: median(&page_results.score),
+// };
+// }

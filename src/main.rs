@@ -99,7 +99,12 @@ pub struct PSIStatisticResult<T> {
     score: T,
 }
 
-async fn batch_tests(url: &str, token: &str, number_of_runs: i8) -> bool {
+async fn batch_tests(
+    url: &str,
+    token: &str,
+    number_of_runs: i8,
+    printer: &mut printer::CSVPrinter,
+) -> bool {
     let mobile_page_result =
         tester::get_page_audits(&url as &str, token, number_of_runs, Strategy::MOBILE)
             .await
@@ -128,27 +133,27 @@ async fn batch_tests(url: &str, token: &str, number_of_runs: i8) -> bool {
     let desktop_page_mean = statistics::calculate_mean(&desktop_page_result, number_of_runs);
     let desktop_page_median = statistics::median(&desktop_page_result.score);
 
-    println!(
-        "{url},{d_mean:.3},{d_median:.3},{m_mean:.3},{m_median:.3}",
-        url = url,
-        d_mean = desktop_page_mean.score,
-        d_median = desktop_page_median,
-        m_mean = mobile_page_mean.score,
-        m_median = mobile_page_median,
-    );
+    printer.write_line(printer::Row {
+        url,
+        d_mean: desktop_page_mean.score,
+        d_median: desktop_page_median,
+        m_mean: mobile_page_mean.score,
+        m_median: mobile_page_median,
+    });
 
     return true;
 }
 
-async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) {
+async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> bool {
     let urls = utils::read_lines(filename);
     let mut failed_urls: Vec<String> = Vec::new();
 
-    println!("Store,Desktop - Media,Desktop - Mediana,Mobile - Media,Mobile - Mediana");
+    let mut csv_printer = printer::CSVPrinter::new();
+
     for _url in urls {
         if let Ok(url) = _url {
             let url = url;
-            let test_finished = batch_tests(&url, token, number_of_runs).await;
+            let test_finished = batch_tests(&url, token, number_of_runs, &mut csv_printer).await;
 
             if !test_finished {
                 failed_urls.push(url.clone());
@@ -164,7 +169,7 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) {
             // from last to first
             let idx = (urls_size - 1) - url_idx;
             let url = failed_urls[idx].clone();
-            let test_finished = batch_tests(&url, token, number_of_runs).await;
+            let test_finished = batch_tests(&url, token, number_of_runs, &mut csv_printer).await;
 
             if !test_finished {
                 continue;
@@ -175,15 +180,12 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) {
     }
 
     for url in failed_urls {
-        println!(
-            "{url},{d_mean:.3},{d_median:.3},{m_mean:.3},{m_median:.3}",
-            url = url,
-            d_mean = 0_f64,
-            d_median = 0_f64,
-            m_mean = 0_f64,
-            m_median = 0_f64,
-        );
+        println!("Test failed for {url} after two retries", url = url);
     }
+
+    csv_printer.flush();
+
+    return true;
 }
 
 async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8) {

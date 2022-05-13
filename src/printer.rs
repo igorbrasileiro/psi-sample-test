@@ -1,5 +1,5 @@
 use csv::Writer;
-use futures::io::Write;
+use serde::Serialize;
 use std::error::Error;
 use std::fs::File;
 
@@ -86,29 +86,42 @@ pub fn print_result(
     print_table_result(page_mean, page_std_deviation, page_confidence_interval);
 }
 
-// pub fn write_csv_file_line(
-// csv_writer: &Writer<File>,
-// url: &str,
-// d_mean: f64,
-// d_median: f64,
-// m_mean: f64,
-// m_median: f64,
-// ) -> Result<(), Box<dyn Error>> {
-// println!("Store,Desktop - Media,Desktop - Mediana,Mobile - Media,Mobile - Mediana");
+#[derive(Serialize)]
+pub struct Row<'a> {
+    #[serde(rename = "Store")]
+    pub url: &'a str,
 
-// csv_writer.write_record(&[url, d_mean, d_median, m_mean, m_median]);
+    #[serde(rename = "Desktop - Mean")]
+    pub d_mean: f64,
 
-// return Ok(());
-// }
+    #[serde(rename = "Desktop - Median")]
+    pub d_median: f64,
 
-// pub fn create_csv_file() -> Write<File> {
-// let mut wtr = Writer::from_path(check_file_availability("./output.csv"))?;
-// wtr.write_record([
-// "Store",
-// "Desktop - Mean",
-// "Desktop - Median",
-// "Mobile - Mean",
-// "Mobile - Median",
-// ]);
-// return wtr;
-// }
+    #[serde(rename = "Mobile - Mean")]
+    pub m_mean: f64,
+
+    #[serde(rename = "Mobile - Median")]
+    pub m_median: f64,
+}
+
+pub struct CSVPrinter {
+    csv_writer: Writer<File>,
+}
+
+impl CSVPrinter {
+    pub fn new() -> CSVPrinter {
+        CSVPrinter {
+            csv_writer: Writer::from_path(check_file_availability("./output.csv")).unwrap(),
+        }
+    }
+
+    pub fn write_line(&mut self, row: Row) -> Result<(), Box<dyn Error>> {
+        self.csv_writer.serialize(row)?;
+
+        return Ok(());
+    }
+
+    pub fn flush(&mut self) {
+        self.csv_writer.flush();
+    }
+}
