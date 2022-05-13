@@ -153,6 +153,9 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> boo
     for _url in urls {
         if let Ok(url) = _url {
             let url = url;
+
+            println!("Testing {url}", url = url);
+
             let test_finished = batch_tests(&url, token, number_of_runs, &mut csv_printer).await;
 
             if !test_finished {
@@ -162,13 +165,16 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> boo
     }
 
     // Handle failed urls until failed_urls list is empty
-    for _ in 0..2 {
+    for qtt in 0..2 {
         let urls_size = failed_urls.len();
 
         for url_idx in 0..urls_size {
             // from last to first
             let idx = (urls_size - 1) - url_idx;
             let url = failed_urls[idx].clone();
+
+            println!("Retesting {url} {qtt}x", url = url, qtt = qtt);
+
             let test_finished = batch_tests(&url, token, number_of_runs, &mut csv_printer).await;
 
             if !test_finished {
