@@ -12,19 +12,34 @@ where
     return file_lines;
 }
 
-pub fn check_file_availability(filename: &str) -> &Path {
+pub fn check_file_availability(filename: &str) -> String {
     let filename_path = Path::new(filename);
 
     if !filename_path.exists() {
-        return filename_path;
+        return filename.to_string();
     }
 
     // TODO: create a file name with "filename (x).ext"
-    // let mut new_filename = &mut filename.clone().replace(".", concat!("()."));
+    let filename_without_extension = filename_path.file_stem().unwrap().to_str().unwrap();
+    let file_extension = filename_path.extension().unwrap().to_str().unwrap();
 
-    // while !Path::new(&new_filename.clone()).exists() {
-    // new_filename = &mut new_filename.replace(".", concat!("()."));
-    // }
+    let mut index = 1;
+    let mut new_filename = format!(
+        "{filename} ({ind}).{ext}",
+        filename = filename_without_extension,
+        ind = index,
+        ext = file_extension,
+    );
 
-    return filename_path;
+    while Path::new(&*new_filename).exists() {
+        index = index + 1;
+        new_filename = format!(
+            "{filename} ({ind}).{ext}",
+            filename = filename_without_extension,
+            ind = index,
+            ext = file_extension,
+        );
+    }
+
+    return new_filename;
 }
