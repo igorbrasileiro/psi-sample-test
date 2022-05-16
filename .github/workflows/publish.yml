@@ -1,10 +1,10 @@
 name: lint, test and publish
 on:
   push:
-    branches:
-      - 'feat/batch-tests'
-      - 'main'
-      - '**'
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -22,21 +22,16 @@ jobs:
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
+      - name: Run check
+        run: cargo check
 
   test:
     runs-on: '${{ matrix.os }}'
     strategy:
       matrix:
         include:
-          - os: macos-latest
+          # TODO: fix it
+          # - os: macos-latest
           - os: ubuntu-latest
           - os: windows-latest
     steps:
@@ -53,21 +48,10 @@ jobs:
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-      - uses: actions-rs/cargo@v1
-        with:
-          command: run
-          args: '-- -h'
+      - name: Run Test
+        run: cargo test --verbose
+      - name: Run Cargo Run
+        run: cargo run -- -h
 
   lints:
     runs-on: ubuntu-latest
@@ -91,10 +75,8 @@ jobs:
           toolchain: nightly
           override: true
           components: 'rustfmt, clippy'
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: '--all -- --check'
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
@@ -177,11 +159,6 @@ jobs:
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
       - uses: actions-rs/cargo@v1
         with:
           command: install
@@ -193,17 +170,15 @@ jobs:
           TEMP_FILE="$(mktemp)"
           toml set Cargo.toml package.version "${VERSION:1}" > "$TEMP_FILE"
           mv "$TEMP_FILE" Cargo.toml
-      - uses: actions-rs/cargo@v1
+      - name: Cargo Build
         env:
           VERSION: '${{ steps.get_version.outputs.VERSION }}'
           REPOSITORY_NAME: '${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}'
-        with:
-          command: build
-          args: '--release'
-      - uses: actions/upload-artifact@master
-        with:
-          name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-${{ matrix.target }}
-          path: ./target/release/${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}${{ matrix.suffix }}
+        run: cargo build --release
+# - uses: actions/upload-artifact@master
+# with:
+# name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-${{ matrix.target }}
+# path: ./target/release/${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}${{ matrix.suffix }}
 
   release:
     if: github.ref == 'refs/heads/main'
@@ -223,24 +198,17 @@ jobs:
       - id: get_version
         run: 'echo ::set-output name=VERSION::$(cat ./version/version)'
         shell: bash
-      - uses: actions/download-artifact@master
-        with:
-          name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-unknown-linux-gnu
-      - uses: actions/download-artifact@master
-        with:
-          name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-apple-darwin
-      - uses: actions/download-artifact@master
-        with:
-          name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-pc-windows-msvc
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: 'toml-cli'
+# - uses: actions/download-artifact@master
+# with:
+# name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-unknown-linux-gnu
+# - uses: actions/download-artifact@master
+# with:
+# name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-apple-darwin
+# - uses: actions/download-artifact@master
+# with:
+# name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-pc-windows-msvc
+      - name: Install cargo toml-cli
+        run: cargo install toml-cli
       - run: |
           TEMP_FILE="$(mktemp)"
           toml set Cargo.toml package.version "${VERSION:1}" > "$TEMP_FILE"
@@ -256,7 +224,7 @@ jobs:
       - id: create_release
         uses: actions/create-release@v1.0.0
         env:
-          GITHUB_TOKEN: '$${{ secrets.GITHUB_TOKEN }}'
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
         with:
           tag_name: '${{ steps.get_version.outputs.VERSION }}'
           release_name: 'Release ${{ steps.get_version.outputs.VERSION }}'
