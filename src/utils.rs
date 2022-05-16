@@ -40,3 +40,11 @@ pub fn check_file_availability(filename: &str) -> String {
 
     new_filename
 }
+
+#[cfg(test)]
+mod utils_tests {
+    #[test]
+    fn check_file_availability() {
+        assert_eq!("test.txt", super::check_file_availability("test.txt"));
+    }
+}

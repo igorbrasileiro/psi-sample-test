@@ -214,6 +214,7 @@ jobs:
           commit_message: Bump cargo version
           branch: ${{ github.head_ref }}
           file_pattern: Cargo.toml
+          push_options: --force
       - id: create_release
         uses: actions/create-release@v1.0.0
         env:
