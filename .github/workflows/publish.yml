@@ -176,24 +176,24 @@ jobs:
 # name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-${{ matrix.target }}
 # path: ./target/release/${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}${{ matrix.suffix }}
 
-  release:
-    if: github.ref == 'refs/heads/main'
-    needs:
-      - build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-        with:
-          lfs: true
-      - id: get_repository_name
-        run: echo ::set-output name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
-        shell: bash
-      - uses: actions/download-artifact@master
-        with:
-          name: version
-      - id: get_version
-        run: 'echo ::set-output name=VERSION::$(cat ./version/version)'
-        shell: bash
+# release:
+# if: github.ref == 'refs/heads/main'
+# needs:
+# - build
+# runs-on: ubuntu-latest
+# steps:
+# - uses: actions/checkout@master
+# with:
+# lfs: true
+# - id: get_repository_name
+# run: echo ::set-output name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
+# shell: bash
+# - uses: actions/download-artifact@master
+# with:
+# name: version
+# - id: get_version
+# run: 'echo ::set-output name=VERSION::$(cat ./version/version)'
+# shell: bash
 # - uses: actions/download-artifact@master
 # with:
 # name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-unknown-linux-gnu
@@ -203,27 +203,28 @@ jobs:
 # - uses: actions/download-artifact@master
 # with:
 # name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-pc-windows-msvc
-      - name: Install cargo cargo-bump
-        run: cargo install cargo-bump
-      - shell: bash
-        env:
-          VERSION: '${{ steps.get_version.outputs.VERSION }}'
-        run: cargo bump patch
-      - uses: stefanzweifel/git-auto-commit-action@v4.1.3
-        with:
-          commit_message: Bump cargo version
-          branch: ${{ github.head_ref }}
-          file_pattern: Cargo.toml
-      - id: create_release
-        uses: actions/create-release@v1.0.0
-        env:
-          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-        with:
-          tag_name: '${{ steps.get_version.outputs.VERSION }}'
-          release_name: 'Release ${{ steps.get_version.outputs.VERSION }}'
-          draft: false
-          prerelease: false
-      - id: publish_cargo
-        uses: katyo/publish-crates@v1
-        with:
-            registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+# - name: Install cargo cargo-bump
+# run: cargo install cargo-bump
+# - shell: bash
+# env:
+# VERSION: '${{ steps.get_version.outputs.VERSION }}'
+# run: cargo bump patch
+# - uses: stefanzweifel/git-auto-commit-action@v4.1.3
+# with:
+# commit_message: Bump cargo version
+# branch: ${{ github.head_ref }}
+# file_pattern: Cargo.toml
+# push_options: '--force'
+# - id: create_release
+# uses: actions/create-release@v1.0.0
+# env:
+# GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+# with:
+# tag_name: '${{ steps.get_version.outputs.VERSION }}'
+# release_name: 'Release ${{ steps.get_version.outputs.VERSION }}'
+# draft: false
+# prerelease: false
+# - id: publish_cargo
+# uses: katyo/publish-crates@v1
+# with:
+# registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
