@@ -1,12 +1,15 @@
-'on':
+name: lint, test and publish
+on:
   push:
     branches:
-      - '*'
+      - 'feat/batch-tests'
+      - 'main'
+      - '**'
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
@@ -22,7 +25,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
       - uses: actions-rs/cargo@v1
         with:
@@ -37,7 +40,7 @@ jobs:
           - os: ubuntu-latest
           - os: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
@@ -53,8 +56,11 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
       - uses: actions-rs/cargo@v1
         with:
           command: test
@@ -66,7 +72,7 @@ jobs:
   lints:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
@@ -82,7 +88,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
           components: 'rustfmt, clippy'
       - uses: actions-rs/cargo@v1
@@ -174,7 +180,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
       - uses: actions-rs/cargo@v1
         with:
@@ -229,7 +235,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
       - uses: actions-rs/cargo@v1
         with:
