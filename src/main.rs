@@ -105,10 +105,9 @@ async fn batch_tests(
     number_of_runs: i8,
     printer: &mut printer::CSVPrinter,
 ) -> bool {
-    let mobile_page_result =
-        tester::get_page_audits(&url as &str, token, number_of_runs, Strategy::MOBILE)
-            .await
-            .unwrap();
+    let mobile_page_result = tester::get_page_audits(url, token, number_of_runs, Strategy::MOBILE)
+        .await
+        .unwrap();
     // Handle if some test failed
     for mobile_result in &mobile_page_result.score {
         if *mobile_result == 0_f64 {
@@ -117,7 +116,7 @@ async fn batch_tests(
     }
 
     let desktop_page_result =
-        tester::get_page_audits(&url as &str, token, number_of_runs, Strategy::DESKTOP)
+        tester::get_page_audits(url, token, number_of_runs, Strategy::DESKTOP)
             .await
             .unwrap();
     // Handle if some test failed
@@ -133,7 +132,7 @@ async fn batch_tests(
     let desktop_page_mean = statistics::calculate_mean(&desktop_page_result, number_of_runs);
     let desktop_page_median = statistics::median(&desktop_page_result.score);
 
-    printer.write_line(printer::Row {
+    let _x = printer.write_line(printer::Row {
         url,
         d_mean: desktop_page_mean.score,
         d_median: desktop_page_median,
@@ -141,7 +140,7 @@ async fn batch_tests(
         m_median: mobile_page_median,
     });
 
-    return true;
+    true
 }
 
 async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> bool {
@@ -150,17 +149,13 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> boo
 
     let mut csv_printer = printer::CSVPrinter::new();
 
-    for _url in urls {
-        if let Ok(url) = _url {
-            let url = url;
+    for url in urls.flatten() {
+        println!("Testing {url}", url = url);
 
-            println!("Testing {url}", url = url);
+        let test_finished = batch_tests(&url, token, number_of_runs, &mut csv_printer).await;
 
-            let test_finished = batch_tests(&url, token, number_of_runs, &mut csv_printer).await;
-
-            if !test_finished {
-                failed_urls.push(url.clone());
-            }
+        if !test_finished {
+            failed_urls.push(url.clone());
         }
     }
 
@@ -189,9 +184,9 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> boo
         println!("Test failed for {url} after two retries", url = url);
     }
 
-    csv_printer.flush();
+    let _x = csv_printer.flush();
 
-    return true;
+    true
 }
 
 async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8) {
@@ -199,9 +194,9 @@ async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8) {
         .await
         .unwrap();
 
-    let page_mean = statistics::calculate_mean(&page_result, number_of_runs);
+    let page_mean = statistics::calculate_mean(page_result, number_of_runs);
 
-    let page_deviation = statistics::calculate_deviation(&page_result, &page_mean, number_of_runs);
+    let page_deviation = statistics::calculate_deviation(page_result, &page_mean, number_of_runs);
 
     let page_confidence_interval =
         statistics::calculate_confidence_interval(&page_mean, &page_deviation, number_of_runs);
@@ -278,12 +273,12 @@ async fn psi_test() -> Result<(), Error> {
     // TODO: Filter get_page_audits results that's empty when failed.
     run_single_tests(page_url, token, number_of_runs).await;
 
-    return Ok(());
+    Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     psi_test().await?;
 
-    return Ok(());
+    Ok(())
 }

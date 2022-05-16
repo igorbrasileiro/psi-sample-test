@@ -2,6 +2,7 @@ use csv::Writer;
 use serde::Serialize;
 use std::error::Error;
 use std::fs::File;
+use std::io;
 
 use crate::utils::check_file_availability;
 use crate::PSIStatisticResult;
@@ -118,10 +119,10 @@ impl CSVPrinter {
     pub fn write_line(&mut self, row: Row) -> Result<(), Box<dyn Error>> {
         self.csv_writer.serialize(row)?;
 
-        return Ok(());
+        Ok(())
     }
 
-    pub fn flush(&mut self) {
-        self.csv_writer.flush();
+    pub fn flush(&mut self) -> io::Result<()> {
+        self.csv_writer.flush()
     }
 }

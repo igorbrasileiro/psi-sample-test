@@ -32,15 +32,10 @@ pub async fn get_page_audits(
     }).collect::<Vec<String>>();
     let client = reqwest::Client::new();
 
-    let list_responses = futures::stream::iter(
-        list_urls
-            .iter()
-            .map(|url| client.get(url).send())
-            .into_iter(),
-    )
-    .buffer_unordered(BUFFER_SIZE)
-    .collect::<Vec<_>>()
-    .await;
+    let list_responses = futures::stream::iter(list_urls.iter().map(|url| client.get(url).send()))
+        .buffer_unordered(BUFFER_SIZE)
+        .collect::<Vec<_>>()
+        .await;
 
     let mut list_audits = Vec::new();
     for res in list_responses {
@@ -61,10 +56,10 @@ pub async fn get_page_audits(
         list_audits.push(audit);
     }
 
-    return Ok(map_audits(&list_audits));
+    Ok(map_audits(&list_audits))
 }
 
-pub fn map_audits(lh_results: &Vec<LHResult>) -> PSIResultValues {
+pub fn map_audits(lh_results: &[LHResult]) -> PSIResultValues {
     return PSIResultValues {
         cumulative_layout_shift: lh_results
             .iter()

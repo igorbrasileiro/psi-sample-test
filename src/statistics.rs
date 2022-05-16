@@ -2,7 +2,7 @@ use crate::{PSIResultValues, PSIStatisticResult};
 
 const Z_VALUE: f64 = 1.96_f64; // z-value for 95% confidence level.
 
-pub fn mean(results: &Vec<f64>, number_of_runs: i8) -> f64 {
+pub fn mean(results: &[f64], number_of_runs: i8) -> f64 {
     return results.iter().sum::<f64>() / number_of_runs as f64;
 }
 
@@ -10,7 +10,7 @@ pub fn calculate_mean(
     page_results: &PSIResultValues,
     number_of_runs: i8,
 ) -> PSIStatisticResult<f64> {
-    return PSIStatisticResult {
+    PSIStatisticResult {
         cumulative_layout_shift: mean(&page_results.cumulative_layout_shift, number_of_runs),
         first_contentful_paint: mean(&page_results.first_contentful_paint, number_of_runs),
         js_execution_time: mean(&page_results.js_execution_time, number_of_runs),
@@ -19,10 +19,10 @@ pub fn calculate_mean(
         time_to_interactive: mean(&page_results.time_to_interactive, number_of_runs),
         total_blocking_time: mean(&page_results.total_blocking_time, number_of_runs),
         score: mean(&page_results.score, number_of_runs),
-    };
+    }
 }
 
-pub fn std_deviation(data: &Vec<f64>, mean: f64, number_of_runs: i8) -> f64 {
+pub fn std_deviation(data: &[f64], mean: f64, number_of_runs: i8) -> f64 {
     return data
         .iter()
         .map(|value| {
@@ -39,7 +39,7 @@ pub fn calculate_deviation(
     page_mean: &PSIStatisticResult<f64>,
     number_of_runs: i8,
 ) -> PSIStatisticResult<f64> {
-    return PSIStatisticResult {
+    PSIStatisticResult {
         cumulative_layout_shift: std_deviation(
             &page_results.cumulative_layout_shift,
             page_mean.cumulative_layout_shift,
@@ -76,7 +76,7 @@ pub fn calculate_deviation(
             number_of_runs,
         ),
         score: std_deviation(&page_results.score, page_mean.score, number_of_runs),
-    };
+    }
 }
 
 // Reference: https://www.dummies.com/article/academics-the-arts/math/statistics/how-to-calculate-a-confidence-interval-for-a-population-mean-when-you-know-its-standard-deviation-169722/
@@ -84,7 +84,7 @@ pub fn confidence_interval(mean: f64, std_deviation: f64, number_of_runs: i8) ->
     // margin error =  z value * std_deviation / sqrt (number_of_runs)
     let margin_error = Z_VALUE * (std_deviation / (number_of_runs as f64).sqrt());
 
-    return (mean - margin_error, mean + margin_error);
+    (mean - margin_error, mean + margin_error)
 }
 
 pub fn calculate_confidence_interval(
@@ -92,7 +92,7 @@ pub fn calculate_confidence_interval(
     std_deviation: &PSIStatisticResult<f64>,
     number_of_runs: i8,
 ) -> PSIStatisticResult<(f64, f64)> {
-    return PSIStatisticResult::<(f64, f64)> {
+    PSIStatisticResult::<(f64, f64)> {
         cumulative_layout_shift: confidence_interval(
             mean.cumulative_layout_shift,
             std_deviation.cumulative_layout_shift,
@@ -129,26 +129,26 @@ pub fn calculate_confidence_interval(
             number_of_runs,
         ),
         score: confidence_interval(mean.score, std_deviation.score, number_of_runs),
-    };
+    }
 }
 
-pub fn median(list: &Vec<f64>) -> f64 {
+pub fn median(list: &[f64]) -> f64 {
     let number_of_runs: usize = list.len();
     let index = number_of_runs / 2;
 
     // Sort list to get the middle value
-    let mut sorted_list = list.clone();
+    let mut sorted_list = list.to_owned();
     sorted_list.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
     if number_of_runs % 2 == 1 {
         // odd
-        return sorted_list.get(index).unwrap().clone();
+        *sorted_list.get(index).unwrap()
     } else {
         // even
         let first_median = sorted_list.get(index).unwrap();
         let second_median = sorted_list.get(index + 1).unwrap();
 
-        return (first_median + second_median) / 2_f64;
+        (first_median + second_median) / 2_f64
     }
 }
 

@@ -7,9 +7,7 @@ where
     P: AsRef<Path>,
 {
     let file = File::open(filename).unwrap();
-    let file_lines = BufReader::new(file).lines();
-
-    return file_lines;
+    BufReader::new(file).lines()
 }
 
 pub fn check_file_availability(filename: &str) -> String {
@@ -19,7 +17,6 @@ pub fn check_file_availability(filename: &str) -> String {
         return filename.to_string();
     }
 
-    // TODO: create a file name with "filename (x).ext"
     let filename_without_extension = filename_path.file_stem().unwrap().to_str().unwrap();
     let file_extension = filename_path.extension().unwrap().to_str().unwrap();
 
@@ -32,7 +29,7 @@ pub fn check_file_availability(filename: &str) -> String {
     );
 
     while Path::new(&*new_filename).exists() {
-        index = index + 1;
+        index += 1;
         new_filename = format!(
             "{filename} ({ind}).{ext}",
             filename = filename_without_extension,
@@ -41,5 +38,5 @@ pub fn check_file_availability(filename: &str) -> String {
         );
     }
 
-    return new_filename;
+    new_filename
 }
