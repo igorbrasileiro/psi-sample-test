@@ -189,8 +189,8 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> boo
     true
 }
 
-async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8) {
-    let page_result = &tester::get_page_audits(page_url, token, number_of_runs, Strategy::MOBILE)
+async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8, strategy: Strategy) {
+    let page_result = &tester::get_page_audits(page_url, token, number_of_runs, strategy)
         .await
         .unwrap();
 
@@ -249,6 +249,21 @@ async fn psi_test() -> Result<(), Error> {
             .long("batch-file")
             .help("Batch file allow pass a TXT input file with URLs, line by line, to be tested.")
         )
+        .arg(
+            // https://developers.google.com/speed/docs/insights/v5/reference/pagespeedapi/runpagespeed#response
+            Arg::new("strategy")
+            .value_name("STRATEGY")
+            .short('S')
+            .long("strategy")
+            .help("The analysis strategy (desktop or mobile) to use, and mobile is the default.
+
+Acceptable values are:
+    \"desktop\": Fetch and analyze the URL for desktop browsers
+    \"mobile\": Fetch and analyze the URL for mobile devices
+
+This value isn't used when batch_tests flag is present."
+            )
+        )
         .get_matches();
 
     // Required value
@@ -270,8 +285,19 @@ async fn psi_test() -> Result<(), Error> {
         .value_of("first-page")
         .expect("Page URL is required");
 
+    let strategy = match matches.value_of("strategy") {
+        Some(value) => {
+            if value.parse::<String>().unwrap().eq("desktop") {
+                Strategy::DESKTOP
+            } else {
+                Strategy::MOBILE
+            }
+        }
+        None => Strategy::MOBILE,
+    };
+
     // TODO: Filter get_page_audits results that's empty when failed.
-    run_single_tests(page_url, token, number_of_runs).await;
+    run_single_tests(page_url, token, number_of_runs, strategy).await;
 
     Ok(())
 }
