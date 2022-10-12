@@ -255,13 +255,13 @@ async fn psi_test() -> Result<(), Error> {
             .value_name("STRATEGY")
             .short('S')
             .long("strategy")
-            .help(
-            "The analysis strategy (desktop or mobile) to use, and mobile is the default.
-            Acceptable values are:
-              \"desktop\": Fetch and analyze the URL for desktop browsers
-              \"mobile\": Fetch and analyze the URL for mobile devices
+            .help("The analysis strategy (desktop or mobile) to use, and mobile is the default.
 
-            This parameter isn't when batch_tests flag is passed."
+Acceptable values are:
+    \"desktop\": Fetch and analyze the URL for desktop browsers
+    \"mobile\": Fetch and analyze the URL for mobile devices
+
+This value isn't used when batch_tests flag is present."
             )
         )
         .get_matches();
