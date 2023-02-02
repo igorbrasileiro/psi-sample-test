@@ -53,6 +53,10 @@ pub async fn get_page_audits(
                 error = error
             ),
         };
+        if (audit.audits.speed_index.numeric_value == 0_f64) {
+            continue;
+        }
+
         list_audits.push(audit);
     }
 

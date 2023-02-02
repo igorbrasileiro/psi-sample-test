@@ -194,12 +194,21 @@ async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8, strat
         .await
         .unwrap();
 
-    let page_mean = statistics::calculate_mean(page_result, number_of_runs);
+    let _nruns = page_result.score.len() as i8;
 
-    let page_deviation = statistics::calculate_deviation(page_result, &page_mean, number_of_runs);
+    if _nruns != number_of_runs {
+        println!(
+            "Some tests failed, the number of success tests is: {}",
+            _nruns
+        )
+    }
+
+    let page_mean = statistics::calculate_mean(page_result, _nruns);
+
+    let page_deviation = statistics::calculate_deviation(page_result, &page_mean, _nruns);
 
     let page_confidence_interval =
-        statistics::calculate_confidence_interval(&page_mean, &page_deviation, number_of_runs);
+        statistics::calculate_confidence_interval(&page_mean, &page_deviation, _nruns);
 
     printer::print_result(
         page_url,
