@@ -140,6 +140,8 @@ async fn batch_tests(
         m_median: mobile_page_median,
     });
 
+    let _x = printer.flush();
+
     true
 }
 
