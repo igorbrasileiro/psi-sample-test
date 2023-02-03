@@ -109,10 +109,8 @@ async fn batch_tests(
         .await
         .unwrap();
     // Handle if some test failed
-    for mobile_result in &mobile_page_result.score {
-        if *mobile_result == 0_f64 {
-            return false;
-        }
+    if mobile_page_result.score.len() != number_of_runs as usize {
+        return false;
     }
 
     let desktop_page_result =
@@ -120,10 +118,8 @@ async fn batch_tests(
             .await
             .unwrap();
     // Handle if some test failed
-    for desktop_result in &desktop_page_result.score {
-        if *desktop_result == 0_f64 {
-            return false;
-        }
+    if desktop_page_result.score.len() != number_of_runs as usize {
+        return false;
     }
 
     let mobile_page_mean = statistics::calculate_mean(&mobile_page_result, number_of_runs);
