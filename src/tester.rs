@@ -21,6 +21,10 @@ const EMPTY_LH_RESULT: LHResult = LHResult {
     },
 };
 
+/// This methods makes requests to google PSI API in batches with BUFFER_SIZE and add the result
+/// into a return list.
+/// This APIs has a though throttling and multiple times returns errors, so, when errors happen,
+/// this method doesn't add the failed result in the return list.
 pub async fn get_page_audits(
     url: &str,
     token: &str,
@@ -45,15 +49,28 @@ pub async fn get_page_audits(
                     audits: json.lighthouse_result.audits,
                     categories: json.lighthouse_result.categories,
                 },
-                Err(_) => EMPTY_LH_RESULT,
+                Err(error) => {
+                    println!(
+                        "Error mounting lighthouse result {site}. \n {error}",
+                        site = url,
+                        error = error
+                    );
+
+                    EMPTY_LH_RESULT
+                }
             },
-            Err(error) => panic!(
-                "Problem mounting audits {site}. \n {error}",
-                site = url,
-                error = error
-            ),
+            Err(error) => {
+                println!(
+                    "Problem mounting audits {site}. \n {error}",
+                    site = url,
+                    error = error
+                );
+
+                EMPTY_LH_RESULT
+            }
         };
-        if (audit.audits.speed_index.numeric_value == 0_f64) {
+
+        if audit.audits.speed_index.numeric_value == 0_f64 {
             continue;
         }
 
