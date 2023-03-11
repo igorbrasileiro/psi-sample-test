@@ -77,14 +77,73 @@ fn print_table_result(
     );
 }
 
-pub fn print_result(
+pub fn print_md(
     page_url: &str,
+    success_runs: i8,
     page_mean: &PSIStatisticResult<f64>,
     page_std_deviation: &PSIStatisticResult<f64>,
     page_confidence_interval: &PSIStatisticResult<(f64, f64)>,
 ) {
+    println!(
+        "Some tests failed, the number of success tests is: {}",
+        success_runs
+    );
     println!("Page result - {url}", url = page_url);
     print_table_result(page_mean, page_std_deviation, page_confidence_interval);
+}
+
+pub fn print_json(
+    page_url: &str,
+    success_runs: i8,
+    page_mean: &PSIStatisticResult<f64>,
+    page_std_deviation: &PSIStatisticResult<f64>,
+    page_confidence_interval: &PSIStatisticResult<(f64, f64)>,
+) {
+    let json = serde_json::json!({
+      "url": page_url,
+      "success_runs": success_runs,
+      "cumulative_layout_shift": {
+         "mean": page_mean.cumulative_layout_shift,
+         "std_dev": page_std_deviation.cumulative_layout_shift,
+         "confidence_interval": page_confidence_interval.cumulative_layout_shift,
+      },
+     "first_contentful_paint": {
+         "mean": page_mean.first_contentful_paint,
+         "std_dev": page_std_deviation.first_contentful_paint ,
+         "confidence_interval": page_confidence_interval.first_contentful_paint,
+      },
+     "largest_contentful_paint": {
+         "mean": page_mean.largest_contentful_paint,
+         "std_dev": page_std_deviation.largest_contentful_paint ,
+         "confidence_interval": page_confidence_interval.largest_contentful_paint,
+      },
+     "time_to_interactive": {
+         "mean": page_mean.time_to_interactive,
+         "std_dev": page_std_deviation.time_to_interactive,
+         "confidence_interval": page_confidence_interval.time_to_interactive,
+     },
+     "total_blocking_time": {
+         "mean": page_mean.total_blocking_time,
+         "std_dev": page_std_deviation.total_blocking_time,
+         "confidence_interval": page_confidence_interval.total_blocking_time,
+     },
+     "score": {
+         "mean": page_mean.score,
+         "std_dev": page_std_deviation.score,
+         "confidence_interval": page_confidence_interval.score,
+     },
+     "js_execution_time": {
+         "mean": page_mean.js_execution_time,
+         "std_dev": page_std_deviation.js_execution_time,
+         "confidence_interval": page_confidence_interval.js_execution_time,
+     },
+     "speed_index" :{
+         "mean": page_mean.speed_index,
+         "std_dev": page_std_deviation.speed_index,
+         "confidence_interval": page_confidence_interval.speed_index,
+     }
+    });
+    println!("{}", serde_json::to_string_pretty(&json).unwrap())
 }
 
 #[derive(Serialize)]
