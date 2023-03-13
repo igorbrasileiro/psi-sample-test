@@ -187,19 +187,23 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> boo
     true
 }
 
-async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8, strategy: Strategy) {
+struct TestResult {
+    page_mean: PSIStatisticResult<f64>,
+    page_deviation: PSIStatisticResult<f64>,
+    page_confidence_interval: PSIStatisticResult<(f64, f64)>,
+    success_runs: i8,
+}
+async fn run_single_tests(
+    page_url: &str,
+    token: &str,
+    number_of_runs: i8,
+    strategy: Strategy,
+) -> TestResult {
     let page_result = &tester::get_page_audits(page_url, token, number_of_runs, strategy)
         .await
         .unwrap();
 
     let _nruns = page_result.score.len() as i8;
-
-    if _nruns != number_of_runs {
-        println!(
-            "Some tests failed, the number of success tests is: {}",
-            _nruns
-        )
-    }
 
     let page_mean = statistics::calculate_mean(page_result, _nruns);
 
@@ -208,12 +212,12 @@ async fn run_single_tests(page_url: &str, token: &str, number_of_runs: i8, strat
     let page_confidence_interval =
         statistics::calculate_confidence_interval(&page_mean, &page_deviation, _nruns);
 
-    printer::print_result(
-        page_url,
-        &page_mean,
-        &page_deviation,
-        &page_confidence_interval,
-    );
+    TestResult {
+        page_mean,
+        page_deviation,
+        page_confidence_interval,
+        success_runs: _nruns,
+    }
 }
 
 async fn psi_test() -> Result<(), Error> {
@@ -271,6 +275,13 @@ Acceptable values are:
 This value isn't used when batch_tests flag is present."
             )
         )
+        .arg(
+            Arg::new("output-format")
+            .value_name("OUTPUT_FORMAT")
+            .short('F')
+            .long("output-format")
+            .help("output-format can be: md for markdown, json for json. --output-format: md|json.")
+        )
         .get_matches();
 
     // Required value
@@ -303,8 +314,27 @@ This value isn't used when batch_tests flag is present."
         None => Strategy::MOBILE,
     };
 
-    // TODO: Filter get_page_audits results that's empty when failed.
-    run_single_tests(page_url, token, number_of_runs, strategy).await;
+    let output_format = matches.value_of("output-format").unwrap_or("json");
+
+    let test_result = run_single_tests(page_url, token, number_of_runs, strategy).await;
+
+    if output_format == "md" {
+        printer::print_md(
+            page_url,
+            test_result.success_runs,
+            &test_result.page_mean,
+            &test_result.page_deviation,
+            &test_result.page_confidence_interval,
+        );
+    } else if output_format == "json" {
+        printer::print_json(
+            page_url,
+            test_result.success_runs,
+            &test_result.page_mean,
+            &test_result.page_deviation,
+            &test_result.page_confidence_interval,
+        )
+    }
 
     Ok(())
 }
