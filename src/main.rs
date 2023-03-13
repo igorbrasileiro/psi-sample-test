@@ -212,12 +212,12 @@ async fn run_single_tests(
     let page_confidence_interval =
         statistics::calculate_confidence_interval(&page_mean, &page_deviation, _nruns);
 
-    return TestResult {
+    TestResult {
         page_mean,
         page_deviation,
         page_confidence_interval,
         success_runs: _nruns,
-    };
+    }
 }
 
 async fn psi_test() -> Result<(), Error> {
@@ -314,10 +314,7 @@ This value isn't used when batch_tests flag is present."
         None => Strategy::MOBILE,
     };
 
-    let output_format = match matches.value_of("output-format") {
-        Some(value) => value,
-        None => "json",
-    };
+    let output_format = matches.value_of("output-format").unwrap_or("json");
 
     let test_result = run_single_tests(page_url, token, number_of_runs, strategy).await;
 
