@@ -30,7 +30,7 @@ fn add_query_param(
 ) -> Result<String, url::ParseError> {
     let mut url = Url::parse(url_str)?;
     url.query_pairs_mut().append_pair(param_name, param_value);
-    Ok(url.into_string())
+    Ok(url.into())
 }
 
 /// This methods makes requests to google PSI API in batches with BUFFER_SIZE and add the result
