@@ -1,5 +1,6 @@
-use chrono::{DateTime, Utc};
+// use chrono::{DateTime, Utc};
 use futures::StreamExt;
+use rand::prelude::*;
 use url::Url;
 
 use crate::{Audit, Audits, Categories, Category, LHResult, PSIResult, PSIResultValues, Strategy};
@@ -43,12 +44,10 @@ pub async fn get_page_audits(
     number_of_runs: i8,
     strategy: Strategy,
 ) -> Result<PSIResultValues, reqwest::Error> {
-    let now: DateTime<Utc> = Utc::now();
-    let timestamp = now.timestamp_millis().to_string();
-    let url_with_timestamp = add_query_param(url, "__v", &timestamp).unwrap();
+    let mut rng = rand::thread_rng();
 
     let list_urls = (0..number_of_runs).map(|_| {
-        format!("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?key={api_key}&url={url}&strategy={strategy}&category=performance", url = url_with_timestamp, api_key = token, strategy = strategy)
+        format!("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?key={api_key}&url={url}&strategy={strategy}&category=performance", url = add_query_param(url, "__v", &format!("{}", rng.gen::<u32>())).unwrap(), api_key = token, strategy = strategy)
     }).collect::<Vec<String>>();
     let client = reqwest::Client::new();
 
