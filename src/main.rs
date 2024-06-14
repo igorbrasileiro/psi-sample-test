@@ -147,7 +147,7 @@ async fn run_batch_tests(filename: &str, token: &str, number_of_runs: i8) -> boo
 
     let mut csv_printer = printer::CSVPrinter::new();
 
-    for url in urls.flatten() {
+    for url in urls.map_while(Result::ok) {
         println!("Testing {url}", url = url);
 
         let test_finished = batch_tests(&url, token, number_of_runs, &mut csv_printer).await;
